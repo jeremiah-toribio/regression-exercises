@@ -21,7 +21,7 @@ from sklearn.model_selection import train_test_split
 # Modeling
 from sklearn.model_selection import GridSearchCV
 # Metrics
-from sklearn.metrics import accuracy_score, precision_score, recall_score, classification_report, confusion_matrix, ConfusionMatrixDisplay
+
 
 
 # fips = county
@@ -59,11 +59,14 @@ def zillow(database='zillow',user=env.user, password=env.password, host=env.host
 
         # rename columns
         zillow = zillow.rename(columns={'fips':'county'})
-        zillow['county'] = zillow['county'].map({6037:'LA',6059:'Orange',6111:'Venture'})
+        zillow['county'] = zillow['county'].map({6037:'LA',6059:'Orange',6111:'Ventura'})
 
         # changing value types
         zillow['yearbuilt'] = zillow['yearbuilt'].astype(int)
         zillow['bedroomcnt'] = zillow['bedroomcnt'].astype(int)
+        zillow['calculatedfinishedsquarefeet'] = zillow['calculatedfinishedsquarefeet'].astype(int)
+        zillow['taxvaluedollarcnt'] = zillow['taxvaluedollarcnt'].astype(int)
+        
         # removing duplicate columns
         zillow = zillow.loc[:,~zillow.columns.duplicated()].copy()
         
