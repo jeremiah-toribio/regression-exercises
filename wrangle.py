@@ -1,4 +1,4 @@
-# Imports ==--==--==
+# ==--==--== Imports ==--==--==
 import env
 import os
 # Ignore Warning
@@ -58,14 +58,14 @@ def zillow(database='zillow',user=env.user, password=env.password, host=env.host
         zillow = zillow.dropna()
 
         # rename columns
-        zillow = zillow.rename(columns={'fips':'county'})
+        zillow = zillow.rename(columns={'fips':'county', 'taxvaluedollarcnt':'tax_value','calculatedfinishedsquarefeet':'sq_feet'})
         zillow['county'] = zillow['county'].map({6037:'LA',6059:'Orange',6111:'Ventura'})
 
         # changing value types
         zillow['yearbuilt'] = zillow['yearbuilt'].astype(int)
         zillow['bedroomcnt'] = zillow['bedroomcnt'].astype(int)
-        zillow['calculatedfinishedsquarefeet'] = zillow['calculatedfinishedsquarefeet'].astype(int)
-        zillow['taxvaluedollarcnt'] = zillow['taxvaluedollarcnt'].astype(int)
+        zillow['sq_feet'] = zillow['sq_feet'].astype(int)
+        zillow['tax_value'] = zillow['tax_value'].astype(int)
         
         # removing duplicate columns
         zillow = zillow.loc[:,~zillow.columns.duplicated()].copy()
@@ -95,7 +95,7 @@ def zillow(database='zillow',user=env.user, password=env.password, host=env.host
     #single_family = zillow[zillow['propertylandusetypeid'] == 261]
     #single_family
 
-def splitter(df,target='taxvaluedollarcnt', stratify=None):
+def splitter(df,target='tax_value', stratify=None):
     '''
     Returns
     Train, Validate, Test from SKLearn
@@ -168,7 +168,7 @@ def ScaledTrain(x_train, x_validate, x_test, linear=True):
         nscaler = StandardScaler()
         rscaler = RobustScaler()
         
-        # change scaler to be kwarg to reduce output -- , scaler=
+        ##### change scaler to be kwarg to reduce output -- , scaler= #####
 
         # stored variables for associated fit x_train & transformed x_train & x_validate
         # train
@@ -194,3 +194,27 @@ def ScaledTrain(x_train, x_validate, x_test, linear=True):
         validate_scaled_Quant = qscaler.transform(x_validate)
         return\
               train_scaled_Quant, validate_scaled_Quant
+
+
+def organize_columns(train):
+    '''
+    Distinguishes between numeric and categorical data types
+    Only selecting columns that would be relevant to visualize, no encoded data.
+
+    '''
+    cat_cols, num_cols = [], []
+    explore = train
+    for col in explore:
+        # check to see if its an object type,
+        # if so toss it in categorical
+        if train[col].dtype == 'O':
+            cat_cols.append(col)
+        # otherwise if its numeric:
+        else:
+            # check to see if we have more than just a few values:
+            # if thats the case, toss it in categorical
+            if train[col].nunique() < 5:
+                cat_cols.append(col)
+            else:
+                num_cols.append(col)
+    return cat_cols, num_cols
