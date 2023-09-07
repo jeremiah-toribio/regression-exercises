@@ -80,7 +80,7 @@ def zillow(database='zillow',user=env.user, password=env.password, host=env.host
         
         
         # dropping extra columns
-        zillow = zillow.drop(columns='propertylandusetypeid')
+        zillow = zillow.drop(columns=['propertylandusetypeid','taxamount'])
         # restoring 'drop_first' column for contract_type as it is desired to specify just this value type (without deducting)
 
         # lowering all column names
@@ -154,11 +154,11 @@ def summarize(df):
     return check_columns
 
 ### SCALER ###
-def ScaledTrain(x_train, x_validate, x_test, linear=True):
+def QuickScale(x_train, x_validate, x_test, linear=True, scaler='MinMax'):
     '''
-    Produces x_train scaled with each respective style, will utilize all unless specificied otherwise.
+    Produces data scaled with each respective style, will utilize all unless specificied otherwise.
 
-    Arguments: df= desired data frame, Linear= True or False
+    Arguments: x_train = desired data frame; and respected validate and test, Linear= True or False
 
     Returns: 6 or 2 arrays that would need to be assigned
     '''
@@ -167,52 +167,54 @@ def ScaledTrain(x_train, x_validate, x_test, linear=True):
         mmscaler = MinMaxScaler()
         nscaler = StandardScaler()
         rscaler = RobustScaler()
-        
-        ##### change scaler to be kwarg to reduce output -- , scaler= #####
-
-        # stored variables for associated fit x_train & transformed x_train & x_validate
-        # train
-        train_scaled_MinMax = mmscaler.fit_transform(x_train)
-        train_scaled_S = nscaler.fit_transform(x_train)
-        train_scaled_R = rscaler.fit_transform(x_train)
-        # validate
-        validate_scaled_MinMax = mmscaler.transform(x_validate)
-        validate_scaled_S = nscaler.transform(x_validate)
-        validate_scaled_R = rscaler.transform(x_validate)
-        test_scaled_MinMax = mmscaler.transform(x_test)
-        test_scaled_S = nscaler.transform(x_test)
-        test_scaled_R = rscaler.transform(x_test)
-        return\
-              train_scaled_MinMax, train_scaled_S, train_scaled_R, validate_scaled_MinMax, validate_scaled_S, validate_scaled_R
-    
-    # Non Linear Scaler        
     else:
+        # Non Linear Scaler 
         qscaler = QuantileTransformer()
         # train
-        train_scaled_Quant = qscaler.fit_transform(x_train)
+        x_train_scaled = qscaler.fit_transform(x_train.copy())
         # validate
-        validate_scaled_Quant = qscaler.transform(x_validate)
-        return\
-              train_scaled_Quant, validate_scaled_Quant
+        x_val_scaled = qscaler.transform(x_validate.copy())
+        # test
+        x_test_scaled = qscaler.transform(x_test.copy())
+        return x_train_scaled, x_val_scaled, x_test_scaled
+
+    # Selecting type of linear scaler to use
+    # MinMax
+    if scaler == 'MinMax':
+        x_train_scaled = mmscaler.fit_transform(x_train.copy())
+        x_val_scaled = mmscaler.fit_transform(x_train.copy())
+        x_test_scaled = mmscaler.fit_transform(x_train.copy())
+        return x_train_scaled, x_val_scaled, x_test_scaled
+    # Standard
+    elif scaler == 'Standard':
+        x_train_scaled = nscaler.transform(x_validate.copy())
+        x_val_scaled = nscaler.transform(x_validate.copy)
+        x_test_scaled = nscaler.transform(x_validate.copy)
+        return x_train_scaled, x_val_scaled, x_test_scaled
+    # Robust
+    elif scaler == 'Robust':
+        x_train_scaled = rscaler.transform(x_test.copy)
+        x_val_scaled = rscaler.transform(x_test.copy)
+        x_test_scaled = rscaler.transform(x_test.copy)
+        return x_train_scaled, x_val_scaled, x_test_scaled
+    else:
+        raise TypeError("Scaler should be 'MinMax', 'Standard' or 'Robust'")
 
 
 def organize_columns(train):
     '''
     Distinguishes between numeric and categorical data types
     Only selecting columns that would be relevant to visualize, no encoded data.
-
     '''
     cat_cols, num_cols = [], []
     explore = train
     for col in explore:
-        # check to see if its an object type,
-        # if so toss it in categorical
+        # check to see if its an object type
         if train[col].dtype == 'O':
             cat_cols.append(col)
-        # otherwise if its numeric:
+        # others will be considered numeric:
         else:
-            # check to see if we have more than just a few values:
-            # if thats the case, toss it in categorical
+            # if more than 5 unique values, will be moved to categorical
             if train[col].nunique() < 5:
                 cat_cols.append(col)
             else:
